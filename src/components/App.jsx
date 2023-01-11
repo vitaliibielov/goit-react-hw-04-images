@@ -5,96 +5,85 @@ import Modal from './Modal/Modal';
 import Button from './Button/Button';
 import Spinner from './Spinner/Spinner';
 import fetchImages from '../services/api';
+import { useState, useEffect } from 'react';
 
-import { Component } from 'react';
+// import { Component } from 'react';
 
-const INITIAL_STATE = {
-  query: '',
-  page: 1,
-  images: [],
-  showModal: false,
-  showLoadMore: false,
-  isLoading: false,
-  noResults: false,
-  largeImageURL: '',
-  error: '',
-};
 
-export class App extends Component {
-  state = {
-    ...INITIAL_STATE,
-  };
+export function App () {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [noResults, setNoResults] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [error, setError] = useState('');
 
-  async componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
+  useEffect(() => {
+    if (query !== '') {
+      fetchData();
+    }
+
+    async function fetchData() {
       try {
-        this.setState({ isLoading: true });
+        setIsLoading(true);
         const { hits, total } = await fetchImages(query, page);
         if (!total) {
-          this.setState({ noResults: true });
+          setNoResults(true);
           return;
         }
-        this.setState(({ images }) => ({
-          images: [...images, ...hits],
-          showLoadMore: page < Math.ceil(total / 12),
-        }));
+        setImages(prevImages => [...prevImages, ...hits]);
+        setShowLoadMore(page < Math.ceil(total / 12));
       } catch (error) {
-        this.setState({ error: error.message });
+        setError(error.message);
       } finally {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       }
     }
-  }
+  }, [query, page]);
 
-  loadMore = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  onSubmit = query => {
-    this.setState({ ...INITIAL_STATE, query });
+  const onSubmit = query => {
+    setQuery(query);
+    setPage(1);
+    setImages([]);
+    setShowLoadMore(false);
+    setNoResults(false);
+    setError('');
   };
 
-  showModal = e => {
-    const largeImageURL = e.target.dataset.url;
-    this.setState({ largeImageURL, showModal: true });
+  const showModalWindow = e => {
+    const largeImage = e.target.dataset.url;
+    setLargeImageURL(largeImage);
+    setShowModal(true);
   };
 
-  hideModal = () => {
-    this.setState({ showModal: false });
+  const hideModal = () => {
+    setShowModal(false);
   };
 
-  render() {
-    const {
-      images,
-      showModal,
-      largeImageURL,
-      isLoading,
-      error,
-      noResults,
-      query,
-      showLoadMore,
-    } = this.state;
-    return (
-      <div className={styles.container}>
-        <SearchBar onSubmit={this.onSubmit} />
-        {noResults && (
-          <p>
-            Sorry there is nothing that matches your search <b>{query}</b>
-          </p>
-        )}
-        <ImageGallery images={images} showModal={this.showModal} />
-        {showModal && <Modal url={largeImageURL} hideModal={this.hideModal} />}
-        {showLoadMore && <Button loadMore={this.loadMore} />}
-        {isLoading && <Spinner />}
-        {error && (
-          <p>
-            Sorry, an unexpected error occurred: <b>{error}</b>
-          </p>
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className={styles.container}>
+      <SearchBar onSubmit={onSubmit} />
+      {noResults && (
+        <p>
+          Sorry there is nothing that matches your search <b>{query}</b>
+        </p>
+      )}
+      <ImageGallery images={images} showModal={showModalWindow} />
+      {showModal && <Modal url={largeImageURL} hideModal={hideModal} />}
+      {showLoadMore && <Button loadMore={loadMore} />}
+      {isLoading && <Spinner />}
+      {error && (
+        <p>
+          Sorry, an unexpected error occurred: <b>{error}</b>
+        </p>
+      )}
+    </div>
+  );
 }

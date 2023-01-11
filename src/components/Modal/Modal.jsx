@@ -1,40 +1,38 @@
 import PropTypes from 'prop-types';
 import styles from './Modal.module.css';
-import { Component } from 'react';
+import { useEffect } from 'react';
 
-export default class Modal extends Component {
-  hideModal = e => {
-    if (e.code === 'Escape') {
-      this.props.hideModal();
-    }
-  };
-
-  onBackdropClick = e => {
+export default function Modal({ hideModal, url }) {
+  const onBackdropClick = e => {
     if (e.currentTarget !== e.target) {
       return;
     }
-    this.props.hideModal();
+    hideModal();
   };
 
-  componentDidMount() {
-    window.addEventListener('keydown', this.hideModal);
-  }
+  useEffect(() => {
+    const closeModal = e => {
+      if (e.code === 'Escape') {
+        hideModal();
+      }
+    };
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.hideModal);
-  }
+    window.addEventListener('keydown', closeModal);
+    return () => {
+      window.removeEventListener('keydown', closeModal);
+    };
+  }, [hideModal]);
 
-  render() {
-    const { url } = this.props;
-    return (
-      <div onClick={this.onBackdropClick} className={styles.overlay}>
-        <div className={styles.modal}>
-          <img src={url} alt="Some pic" width="800" />
-        </div>
+
+  return (
+    <div onClick={onBackdropClick} className={styles.overlay}>
+      <div className={styles.modal}>
+        <img src={url} alt="Some pic" width="800" />
       </div>
-    );
-  }
+    </div>
+  );
 }
+
 
 Modal.propTypes = {
   hideModal: PropTypes.func.isRequired,
